@@ -12,6 +12,7 @@ Integrantes:
 Descripción:
 Librería para la realización de cifrado y descifrado usando el algoritmo RSA.
 """
+import random
 import modular
 from typing import Tuple,List
 
@@ -34,7 +35,18 @@ def generar_claves(min_primo:int,max_primo:int)-> Tuple[int,int,int]:
     Raises:
         ValueError: Si no es posible encontrar una pareja de primos distintos p1,p2 entre min_primo y max_primo
     """
-    pass
+    primes_list, pl_cap = modular.lista_primos(min_primo, max_primo), len(primes_list) - 1
+    r1, r2 = random.randint(0, pl_cap), random.randint(0, pl_cap)
+    n, phi_n = r1*r2, (r1 - 1)*(r2 - 1)
+    pn_cap = phi_n - 1
+    e = random.randint(2, pn_cap)
+
+    while not modular.coprimos(phi_n, e):
+        e = random.randint(2, pn_cap)
+
+    d = modular.inversa_mod_p(e, phi_n)
+
+    return (n, e, d)
 
 def aplicar_padding(m:int,digitos_padding:int)->int:
     """Dado un mensaje y un número de dígitos de padding, añade
@@ -56,7 +68,15 @@ def aplicar_padding(m:int,digitos_padding:int)->int:
         aplicar_padding(24,3)=24845
         aplicar_padding(24,0)=24
     """
-    pass
+    if digitos_padding > 0:
+        magnitude = 10 ** digitos_padding
+        cap = magnitude - 1
+        padding = random.randint(0, cap)
+        m_padded = m * (magnitude) + padding
+
+        return m_padded
+
+    return m
 
 
 def eliminar_padding(m:int,digitos_padding:int)->int:
@@ -80,8 +100,13 @@ def eliminar_padding(m:int,digitos_padding:int)->int:
         eliminar_padding(2432,2)=24
         eliminar_padding(2432,0)=2432
     """
-    pass
+    if digitos_padding > 0:
+        magnitude = 10 ** digitos_padding
+        m_not_padded = m // magnitude
 
+        return m_not_padded
+
+    return m
 
 def cifrar_rsa(m:int,n:int,e:int,digitos_padding:int)->int:
     """Dado un mensaje m entero, un módulo y exponente que formen parte
@@ -100,7 +125,11 @@ def cifrar_rsa(m:int,n:int,e:int,digitos_padding:int)->int:
 
     Raises: None
     """
-    pass
+    m_padded = aplicar_padding(m, digitos_padding)
+    c = modular.potencia_mod_p(m_padded, e, n)
+
+    return c
+
 
 
 def descifrar_rsa(c:int,n:int,d:int,digitos_padding:int)->int:
@@ -121,7 +150,10 @@ def descifrar_rsa(c:int,n:int,d:int,digitos_padding:int)->int:
 
     Raises: None
     """
-    pass
+    m_padded = modular.potencia_mod_p(c, d, n)
+    m = eliminar_padding(m_padded, digitos_padding)
+
+    return m
 
 
 def codificar_cadena(s:str)->List[int]:
@@ -139,7 +171,9 @@ def codificar_cadena(s:str)->List[int]:
     Example:
         codificar_cadena("¡Hola mundo!")=[161, 72, 111, 108, 97, 32, 109, 117, 110, 100, 111, 33]
     """
-    pass
+    cod_str = [ord(ch) for ch in s]
+
+    return cod_str
 
 
 def decodificar_cadena(m:List[int])->str:
@@ -158,7 +192,12 @@ def decodificar_cadena(m:List[int])->str:
     Example:
         decodificar_cadena([161, 72, 111, 108, 97, 32, 109, 117, 110, 100, 111, 33])="¡Hola mundo!"
     """
-    pass
+    s = ""
+
+    for v in m:
+        s += chr(v)
+
+    return s
 
 
 def cifrar_cadena_rsa(s:str,n:int,e:int,digitos_padding:int)->List[int]:
@@ -176,7 +215,13 @@ def cifrar_cadena_rsa(s:str,n:int,e:int,digitos_padding:int)->List[int]:
 
     Raises: None
     """
-    pass
+    m = codificar_cadena(s)
+
+    for i in range(m):
+
+        j, m[i] = m[i], cifrar_rsa(j, n, e, digitos_padding)
+
+    return m
 
 
 def descifrar_cadena_rsa(cList:List[int],n:int,d:int,digitos_padding:int)->str:
@@ -194,7 +239,15 @@ def descifrar_cadena_rsa(cList:List[int],n:int,d:int,digitos_padding:int)->str:
     Raises:
         ValueError: Si, tras decodificar, alguno de los enteros del mensaje no representa un caracter unicode válido.    
     """
-    pass
+    for i in range(cList):
+        b, cList[i] = cList[i], descifrar_rsa(b, n, d, digitos_padding)
+
+    s = ""
+
+    for c in cList:
+        s += chr(c)
+
+    return s
 
 
 def romper_clave(n:int,e:int)->int:
