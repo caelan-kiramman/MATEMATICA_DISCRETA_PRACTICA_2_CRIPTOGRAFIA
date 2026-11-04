@@ -36,14 +36,18 @@ def generar_claves(min_primo:int,max_primo:int)-> Tuple[int,int,int]:
         ValueError: Si no es posible encontrar una pareja de primos distintos p1,p2 entre min_primo y max_primo
     """
     primes_list, pl_cap = modular.lista_primos(min_primo, max_primo), len(primes_list) - 1
+
+    if pl_cap < 2:
+        raise ValueError('El intervalo no contiene suficientes primos para cifrar')
+    
     r1, r2 = random.randint(0, pl_cap), random.randint(0, pl_cap)
-    n, phi_n = r1*r2, (r1 - 1)*(r2 - 1)
-    pn_cap = phi_n - 1
-    e = random.randint(2, pn_cap)
 
-    while not modular.coprimos(phi_n, e):
-        e = random.randint(2, pn_cap)
+    while r2 == r1:
+        r2 = random.randint(0, pl_cap)
 
+    p1, p2 = primes_list[r1], primes_list[r2]
+    n, phi_n = p1*p2, (p1 - 1)*(p2 - 1)
+    e = modular.coprimo_valor_a(phi_n)
     d = modular.inversa_mod_p(e, phi_n)
 
     return (n, e, d)

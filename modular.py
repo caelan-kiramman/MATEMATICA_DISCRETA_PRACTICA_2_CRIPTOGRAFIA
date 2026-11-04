@@ -16,6 +16,7 @@ Librería para la realización de cálculos y resolución de problemas de aritm�
 from typing import Tuple, List, Dict
 from math import sqrt
 from excepciones import IncompatibleEquationError, Nop
+import random as r
 
 def es_primo(n:int)->bool:
     """ Reciba un entero n y devuelva verdadero si es un número primo y falso en caso contrario
@@ -605,3 +606,20 @@ def mult_ext(par1:tuple, par2:tuple, w2:int, p:int):
     v = (u1 * v2 + u2 * v1) % p
 
     return (u, v)
+
+def coprimo_valor_a(a: int) -> List[int]:
+    """
+    Genera un número aleatorio coprimo con a
+
+    Args:
+        a (int): Extremo superior del intervalo.
+
+    Returns:
+        List[int]: Lista ordenada de enteros coprimos con 'a'.
+    """
+    
+    while True:
+        e = r.randint(2, a - 1) # generación de candidato para ser coprimo
+        
+        if coprimos(e, a):
+            return e # En el momento que sea coprimo se devuelve
