@@ -16,6 +16,7 @@ Librería para la realización de cálculos y resolución de problemas de aritm�
 from typing import Tuple, List, Dict
 from math import sqrt
 from excepciones import IncompatibleEquationError, Nop
+import random as r
 
 def es_primo(n:int)->bool:
     """ Reciba un entero n y devuelva verdadero si es un número primo y falso en caso contrario
@@ -387,9 +388,17 @@ def euler(n:int)->int:
     """
 
     n_factorizado = factorizar(n)
+
+    if len(n_factorizado) > 2:
+        raise ValueError('Módulo para RSA inválido')
+    
     phi_n = 1
 
     for primo, exp in n_factorizado.items():
+
+        if exp > 1:
+            raise ValueError('Módulo inválido para RSA')
+        
         phi_n *= (primo - 1) * primo**(exp - 1)
 
     return phi_n
@@ -605,3 +614,52 @@ def mult_ext(par1:tuple, par2:tuple, w2:int, p:int):
     v = (u1 * v2 + u2 * v1) % p
 
     return (u, v)
+
+def coprimo_valor_a(a: int) -> int:
+    """
+    Genera un número aleatorio coprimo con a
+
+    Args:
+        a (int): Valor con el que el resultado debe ser coprimo.
+
+    Returns:
+        int: Valor coprimo con 'a'.
+
+    Raises:
+        ValueError: En el caso en el que se introduzca a inválida.
+    """
+    if a < 3: raise ValueError('No existe una clave e válida para dicho valor')
+    
+    while True:
+        e = r.randint(2, a - 1) # generación de candidato para ser coprimo
+        
+        if coprimos(e, a): return e # En el momento que sea coprimo se devuelve
+
+def primo_aleatorio(a: int, b: int) -> int:
+    """
+    Encuentra un número primo pseudo-aleatoriamente dentro del intervalo [a, b).
+    
+    Nota: A todos los valores pares se les suma uno porque sólo importan los impares
+    y al ser todos valores por encima del límite establecido (>2) ninguno es primo.
+
+    Args:
+        a (int): Límite inferior del intervalo (incluido).
+        b (int): Límite superior del intervalo (excluido).
+
+    Returns:
+        x (int): El primo que se busca
+
+    Raises:
+        ValueError: Si se supera el límite establecido.
+    """
+    MAX_TRIES = 2_000
+
+    for _ in range(MAX_TRIES):
+        x = r.randrange(a, b)
+
+        if x % 2 == 0:
+            x += 1
+
+        if x < b and es_primo(x): return x
+
+    raise ValueError('No se ha encontrado un primo dentro del intervalo [a, b)')
