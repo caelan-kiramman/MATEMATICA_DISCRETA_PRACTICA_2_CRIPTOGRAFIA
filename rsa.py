@@ -35,17 +35,31 @@ def generar_claves(min_primo:int,max_primo:int)-> Tuple[int,int,int]:
     Raises:
         ValueError: Si no es posible encontrar una pareja de primos distintos p1,p2 entre min_primo y max_primo
     """
-    primes_list, pl_cap = modular.lista_primos(min_primo, max_primo), len(primes_list) - 1
+    LIMIT = 10 ** 6
+    min_primo = max(min_primo, 2)
 
-    if pl_cap < 2:
-        raise ValueError('El intervalo no contiene suficientes primos para cifrar')
+    if max_primo - min_primo <= LIMIT:
+        primes_list = modular.lista_primos(min_primo, max_primo)
+        pl_cap = len(primes_list) - 1
+
+        if pl_cap < 1:
+            raise ValueError('El intervalo no contiene suficientes primos para cifrar')
     
-    r1, r2 = random.randint(0, pl_cap), random.randint(0, pl_cap)
+        r1, r2 = random.randint(0, pl_cap), random.randint(0, pl_cap)
 
-    while r2 == r1:
-        r2 = random.randint(0, pl_cap)
+        while r2 == r1:
+            r2 = random.randint(0, pl_cap) # Forzamos a que los valores pseudo-aleatorios sean diferentes
 
-    p1, p2 = primes_list[r1], primes_list[r2]
+        p1, p2 = primes_list[r1], primes_list[r2]
+
+    else:
+        p1 = modular.primo_aleatorio(min_primo, max_primo)
+
+        while True:
+            p2 = modular.primo_aleatorio(min_primo, max_primo)
+
+            if p1 != p2: break
+
     n, phi_n = p1*p2, (p1 - 1)*(p2 - 1)
     e = modular.coprimo_valor_a(phi_n)
     d = modular.inversa_mod_p(e, phi_n)
@@ -135,7 +149,6 @@ def cifrar_rsa(m:int,n:int,e:int,digitos_padding:int)->int:
     return c
 
 
-
 def descifrar_rsa(c:int,n:int,d:int,digitos_padding:int)->int:
     """Dado un cifrado c entero que haya sido cifrado con RSA usando
     digitos_padding cifras de padding al final del mensaje y el 
@@ -185,7 +198,7 @@ def decodificar_cadena(m:List[int])->str:
     en la cadena que representan.
     
     Args:
-        m (List[int]): lisa de enteros que representan los códigos unicode de una cadena de caracteres.
+        m (List[int]): lista de enteros que representan los códigos unicode de una cadena de caracteres.
     
     Returns:
         str: cadena que representan
@@ -196,16 +209,13 @@ def decodificar_cadena(m:List[int])->str:
     Example:
         decodificar_cadena([161, 72, 111, 108, 97, 32, 109, 117, 110, 100, 111, 33])="¡Hola mundo!"
     """
-    s = ""
+    s = [chr(c) for c in m]
 
-    for v in m:
-        s += chr(v)
-
-    return s
+    return "".join(s)
 
 
 def cifrar_cadena_rsa(s:str,n:int,e:int,digitos_padding:int)->List[int]:
-    """Cifra carácter a carácter una cadena de caracteres usando RSA con clave púbica (n,e)
+    """Cifra carácter a carácter una cadena de caracteres usando RSA con clave pública (n,e)
     y digitos_padding cifras de padding al final del mensaje y devuelve la lista de enteros
     que representan el mensaje cifrado correspondiente.
     Args:
@@ -220,19 +230,16 @@ def cifrar_cadena_rsa(s:str,n:int,e:int,digitos_padding:int)->List[int]:
     Raises: None
     """
     m = codificar_cadena(s)
+    t = [cifrar_rsa(c, n, e, digitos_padding) for c in m]
 
-    for i in range(m):
-
-        j, m[i] = m[i], cifrar_rsa(j, n, e, digitos_padding)
-
-    return m
+    return t
 
 
 def descifrar_cadena_rsa(cList:List[int],n:int,d:int,digitos_padding:int)->str:
     """Dado un mensaje cifrado con RSA usando la clave pública cuya clave privada asociada es (n,d)
-    y digitos_padding cifras de padding al final del mensaje, devuelve la cadena orignal.
+    y digitos_padding cifras de padding al final del mensaje, devuelve la cadena original.
     Args:
-        cList (List[int]): lisa de enteros que representan el mensaje cifrado
+        cList (List[int]): lista de enteros que representan el mensaje cifrado
         n (int): módulo para RSA
         d (int): clave privada para RSA
         digitos_padding (int): número no negativo de dígitos de padding usados para el cifrado de cList.
@@ -243,13 +250,8 @@ def descifrar_cadena_rsa(cList:List[int],n:int,d:int,digitos_padding:int)->str:
     Raises:
         ValueError: Si, tras decodificar, alguno de los enteros del mensaje no representa un caracter unicode válido.    
     """
-    for i in range(cList):
-        b, cList[i] = cList[i], descifrar_rsa(b, n, d, digitos_padding)
-
-    s = ""
-
-    for c in cList:
-        s += chr(c)
+    m = [descifrar_rsa(c, n, d, digitos_padding) for c in cList]
+    s = decodificar_cadena(m)
 
     return s
 
@@ -268,7 +270,15 @@ def romper_clave(n:int,e:int)->int:
     Raises:
         ValueError: Si no existe ninguna clave privada d compatible con la clave pública (n,e).
     """
-    pass
+    phi_n = modular.euler(n)
+    
+    try:
+        d = modular.inversa_mod_p(e, phi_n)
+
+    except ZeroDivisionError:
+        raise ValueError(f'No existe clave privada compatible con la clave pública ({n}, {e})')
+
+    return d
 
 
 def ataque_texto_elegido(cList:List[int],n:int,e:int)->str:
@@ -276,7 +286,7 @@ def ataque_texto_elegido(cList:List[int],n:int,e:int)->str:
     con RSA plano sin usar padding a partir de su clave pública.
 
     Args:
-        cList (List[int]): lisa de enteros que representan el mensaje cifrado
+        cList (List[int]): lista de enteros que representan el mensaje cifrado
         n (int): módulo para RSA
         e (int): clave pública para RSA
     
@@ -286,4 +296,27 @@ def ataque_texto_elegido(cList:List[int],n:int,e:int)->str:
     Raises:
         ValueError: Si el mensaje no se corresponde con ningún texto plano que haya sido codificado con RSA sin padding.
     """
-    pass
+    mapping = {}
+    cSet = set(cList) # Al pasarlo a set sabemos cuales son valores a buscar
+    num_uni_ch = 1_114_112 # Número total de caracteres de Unicode
+    cap = min(n, num_uni_ch) # Buscamos hasta el menor de los dos sólo
+
+
+    for v in range(cap):
+        c = modular.potencia_mod_p(v, e, n)
+        mapping[c] = v
+
+        if c in cSet:
+            cSet.remove(c)
+            
+            if not cSet: break
+
+    if cSet: raise ValueError('Ha habido caracteres que no se han podido descifrar')
+
+    s = []
+
+    for c in cList:
+        m = mapping[c]
+        s.append(chr(m))
+
+    return "".join(s)
